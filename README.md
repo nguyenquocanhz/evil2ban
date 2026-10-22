@@ -1,5 +1,12 @@
 # Evil2Ban
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/github/v/tag/nguyenquocanhz/evil2ban?label=version)](https://github.com/nguyenquocanhz/evil2ban/tags)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688.svg)
+![fail2ban](https://img.shields.io/badge/fail2ban-%2B%20nftables-orange.svg)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-real--IP%20safe-F38020.svg)
+
 **Chủ động phát hiện & chặn brute-force / scan, dashboard localhost — real-IP Cloudflare an toàn.**
 
 Evil2Ban đọc log nginx (`/www/wwwlogs/*.log`), journald SSH và fail2ban để phát
