@@ -5,127 +5,110 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Evil2Ban</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e5484d'/></svg>">
-<link rel="stylesheet" href="css/style.css">
+<script>
+  // đặt sáng/tối trước khi vẽ để không chớp màu
+  (function () {
+    var m = "dark"; try { m = localStorage.getItem("e2b_theme") || "dark"; } catch (e) { }
+    if (m === "system") m = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    document.documentElement.dataset.theme = m;
+  })();
+</script>
+<link rel="stylesheet" href="css/style.css?v=1.2.2">
 </head>
 <body>
-<div id="app">
-  <!-- sidebar -->
-  <aside class="sidebar">
-    <div class="brand"><span class="dot"></span><span>Evil2Ban</span></div>
-    <nav class="nav">
-      <button data-v="dashboard" class="active"><span class="ico">▣</span><span class="txt">Dashboard</span></button>
-      <button data-v="monitor"><span class="ico">◉</span><span class="txt">Monitor</span></button>
-      <button data-v="blacklist"><span class="ico">⛔</span><span class="txt">Blacklist</span></button>
-    </nav>
-    <div class="side-foot">
-      <div>127.0.0.1 · SSH tunnel</div>
-      <button id="logout">Dang xuat</button>
+
+<!-- ĐĂNG NHẬP -->
+<div id="login" class="login hidden">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="logo-tile"><span class="logo-dot"></span></span>
+      <span class="login-name">Evil2Ban</span>
+      <p data-i18n="login.subtitle"></p>
+    </div>
+    <form class="form" id="login-form" novalidate>
+      <div class="field">
+        <label for="lg-user" data-i18n="login.user"></label>
+        <input class="input" type="text" id="lg-user" data-i18n-ph="login.userPh" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <div class="field-row">
+          <label for="lg-pass" data-i18n="login.pass"></label>
+          <button type="button" class="link" id="lg-reset" data-i18n="login.forgot"></button>
+        </div>
+        <div class="input-wrap">
+          <input class="input" type="password" id="lg-pass" placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="eye" id="lg-eye"></button>
+        </div>
+        <p class="field-err hidden" id="lg-err" role="alert"></p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="lg-submit" data-i18n="login.submit"></button>
+    </form>
+    <div class="login-foot">
+      <p id="lg-foot"></p>
+      <div class="lang-seg" style="display:inline-flex;margin-top:12px" data-lang-seg>
+        <button type="button" data-lang="vi">VI</button><button type="button" data-lang="en">EN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <span class="logo-dot"></span>
+      <span class="sb-name sb-fade">Evil2Ban</span>
+      <span class="sb-ver sb-fade" id="sb-ver"></span>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-foot">
+      <div class="account">
+        <span class="avatar" id="acc-avatar">A</span>
+        <div class="acc-text sb-fade">
+          <p class="acc-name trunc" id="acc-name"></p>
+          <p class="acc-host trunc" id="acc-host">—</p>
+        </div>
+        <button type="button" class="logout sb-fade" id="logout" data-sb-hide data-i18n-title="logout"><span data-icon="log-out"></span></button>
+      </div>
     </div>
   </aside>
+  <div class="overlay" id="overlay"></div>
 
-  <!-- main -->
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <h1 id="title">Dashboard</h1>
-        <div class="meta" id="meta">—</div>
-      </div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <section id="view-dashboard" class="view">
-      <div class="grid stats" id="stats"></div>
-      <div class="card" style="margin-top:16px">
-        <div class="panel-title">Bieu do theo thoi gian
-          <span class="hint">OHLC/ngay tu bien dong theo gio</span>
+  <div class="content">
+    <header class="topbar">
+      <button type="button" class="burger" id="burger"><span data-icon="menu" data-cls="ico-5"></span></button>
+      <button type="button" class="sb-toggle" id="sb-toggle"></button>
+      <h1 class="trunc" id="title"></h1>
+      <div class="top-right">
+        <span class="live-chip off" id="live-chip"><span class="live-dot"></span><span id="live-text"></span></span>
+        <div class="lang-seg" data-lang-seg><button type="button" data-lang="vi">VI</button><button type="button" data-lang="en">EN</button></div>
+        <button type="button" class="icon-btn" id="theme-btn"></button>
+        <div class="bell-wrap" id="bell-wrap">
+          <button type="button" class="icon-btn" id="bell-btn" aria-haspopup="true" aria-expanded="false"><span data-icon="bell"></span><span class="bell-badge hidden" id="bell-badge">0</span></button>
+          <div class="pop pop-alerts hidden" id="bell-pop"></div>
         </div>
-        <div class="chart-controls">
-          <div class="seg" id="chart-type">
-            <button data-t="line" class="active">Duong</button>
-            <button data-t="candles">Nen</button>
-            <button data-t="bars">Cot</button>
-          </div>
-          <div class="seg" id="chart-gran">
-            <button data-g="daily" class="active">Theo ngay</button>
-            <button data-g="monthly">Theo thang</button>
-          </div>
-          <select id="chart-metric" class="btn" style="padding:7px 10px">
-            <option value="requests">Tong request</option>
-            <option value="errors404">Loi 404</option>
-            <option value="scanners">Scanner</option>
-            <option value="ssh_failed">SSH brute-force</option>
-            <option value="bans">So IP bi chan</option>
-          </select>
-        </div>
-        <div class="chart-wrap"><canvas id="chart"></canvas></div>
       </div>
-    </section>
-
-    <!-- MONITOR -->
-    <section id="view-monitor" class="view hidden">
-      <div class="grid" style="grid-template-columns:1fr 1fr">
-        <div class="card"><div class="panel-title">SSH brute-force (6h)</div><div id="mon-ssh"></div></div>
-        <div class="card"><div class="panel-title">User bi thu nhieu nhat</div><div id="mon-users"></div></div>
-        <div class="card"><div class="panel-title">Top traffic (IP that, ngoai CF)</div><div id="mon-traffic"></div></div>
-        <div class="card"><div class="panel-title">Top User-Agent</div><div id="mon-ua"></div></div>
+    </header>
+    <main class="main">
+      <div class="page">
+        <section class="view" id="view-dashboard"></section>
+        <section class="view hidden" id="view-monitor"></section>
+        <section class="view hidden" id="view-blacklist">
+          <div class="toolbar" id="bl-toolbar"></div>
+          <div class="cf-note" id="bl-note"></div>
+          <div id="bl-card"></div>
+        </section>
+        <section class="view hidden" id="view-domains"></section>
+        <section class="view hidden" id="view-audit"></section>
+        <section class="view hidden" id="view-settings"></section>
       </div>
-      <div class="card" style="margin-top:14px">
-        <div class="panel-title">Phan loai</div>
-        <div style="margin-bottom:10px">Thiet bi: <span id="mon-dev"></span></div>
-        <div>Status: <span id="mon-status"></span></div>
-      </div>
-      <div class="card" style="margin-top:14px"><div class="panel-title">Nhat ky su kien</div><div id="mon-events"></div></div>
-    </section>
-
-    <!-- BLACKLIST -->
-    <section id="view-blacklist" class="view hidden">
-      <div class="card">
-        <div class="panel-title">IP dang bi chan (fail2ban)</div>
-        <div class="toolbar">
-          <div class="search"><input type="text" id="bl-search" placeholder="Tim IP hoac quoc gia…"></div>
-        </div>
-        <div class="bulkbar" id="bl-bulk"></div>
-        <div id="bl-table"></div>
-        <div class="pager" id="bl-pager"></div>
-      </div>
-
-      <div class="card" style="margin-top:14px">
-        <div class="panel-title">IP nghi van (chua chan) — co the chan nhanh</div>
-        <div class="bulkbar" id="su-bulk"></div>
-        <div id="su-table"></div>
-      </div>
-
-      <div class="card" style="margin-top:14px">
-        <div class="panel-title">Whitelist (khong bao gio bi chan)
-          <span class="hint">owner + dai Cloudflare</span></div>
-        <div class="toolbar">
-          <div class="search"><input type="text" id="wl-input" placeholder="Them IP hoac CIDR cua ban…"></div>
-          <button class="btn primary" id="wl-add">Them</button>
-        </div>
-        <div id="wl-table"></div>
-      </div>
-    </section>
-  </main>
+    </main>
+  </div>
 </div>
 
-<!-- login -->
-<div id="login" class="login-mask hidden">
-  <form class="login-box" id="login-form">
-    <h2><span class="dot" style="width:12px;height:12px;border-radius:50%;background:var(--accent);display:inline-block"></span> Evil2Ban</h2>
-    <p>Dang nhap de quan ly</p>
-    <label>Tai khoan</label>
-    <input type="text" id="lg-user" autocomplete="username">
-    <label>Mat khau</label>
-    <input type="password" id="lg-pass" autocomplete="current-password">
-    <div class="login-err" id="lg-err"></div>
-    <div class="row">
-      <button type="button" class="side-foot" id="lg-reset" style="all:unset;cursor:pointer;color:var(--accent2);font-size:12.5px">Quen mat khau?</button>
-      <button type="submit" class="btn primary">Dang nhap</button>
-    </div>
-  </form>
-</div>
-
-<script src="js/charts.js"></script>
-<script src="js/app.js"></script>
+<script src="vendor/sweetalert2.min.js?v=11.14.5"></script>
+<script src="js/icons.js?v=1.2.2"></script>
+<script src="js/i18n.js?v=1.2.2"></script>
+<script src="js/app.js?v=1.2.2"></script>
 </body>
 </html>

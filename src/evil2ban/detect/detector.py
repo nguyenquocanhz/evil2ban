@@ -106,8 +106,23 @@ class TrafficAnalyzer:
              if is_public(ip) and not self.resolver.is_cdn(ip)),
             key=lambda x: -x["total"])[:10]
 
+        # request theo quoc gia (IP that, bo Cloudflare/noi bo) cho ban do
+        by_cc = {}
+        for ip, st in per_ip.items():
+            if not is_public(ip) or self.resolver.is_cdn(ip):
+                continue
+            cc = self.geo(ip)
+            if not cc:
+                continue
+            c = by_cc.setdefault(cc, [0, 0])
+            c[0] += st.total
+            c[1] += 1
+        countries = sorted(({"cc": cc, "requests": v[0], "ips": v[1]} for cc, v in by_cc.items()),
+                           key=lambda x: -x["requests"])
+
         return {
             "requests": total,
+            "countries": countries,
             "cdn_hidden": cdn_hidden,
             "unique_ips": sum(1 for ip in per_ip
                               if is_public(ip) and not self.resolver.is_cdn(ip)),

@@ -14,11 +14,11 @@ class BanGuard:
 
     def check(self, ip):
         if not is_public(ip):
-            raise BanRejected("IP khong hop le hoac noi bo.")
+            raise BanRejected("IP không hợp lệ hoặc là IP nội bộ.", "ip_invalid")
         if self.resolver.is_cdn(ip):
-            raise BanRejected("IP thuoc dai Cloudflare — tu choi (tranh sap site).")
+            raise BanRejected("IP thuộc dải Cloudflare, từ chối chặn để tránh sập site.", "ip_cloudflare")
         if self.is_whitelisted(ip):
-            raise BanRejected("IP nam trong whitelist — tu choi ban.")
+            raise BanRejected("IP nằm trong whitelist, từ chối chặn.", "ip_whitelisted")
 
 
 class AutoBanPolicy:
@@ -42,32 +42,34 @@ class BanService:
         self.guard = guard
         self.jail = jail
 
-    def ban(self, ip, reason="manual"):
+    def ban(self, ip, reason="manual", actor_ip=""):
         self.guard.check(ip)                       # co the raise BanRejected
         out = self.firewall.ban(self.jail, ip)
         ok = "error" not in out.lower()
         if ok:
             self.notifier.send("ban", self.jail, ip, reason)
-            self.events.add("ban", ip, jail=self.jail, reason=reason, detail=out.strip())
+            self.events.add("ban", ip, jail=self.jail, reason=reason, detail=out.strip(), actor_ip=actor_ip)
         return ok, out.strip()
 
-    def unban(self, ip):
+    def unban(self, ip, actor_ip=""):
         out = self.firewall.unban(self.jail, ip)
-        self.events.add("unban", ip, jail=self.jail, detail=out.strip())
+        ok = "error" not in out.lower()
+        self.events.add("unban", ip, jail=self.jail, detail=out.strip(), actor_ip=actor_ip,
+                        result="ok" if ok else "fail")
         return "error" not in out.lower(), out.strip()
 
-    def ban_many(self, ips, reason="manual"):
+    def ban_many(self, ips, reason="manual", actor_ip=""):
         results = []
         for ip in ips:
             try:
-                ok, out = self.ban(ip, reason)
+                ok, out = self.ban(ip, reason, actor_ip)
                 results.append({"ip": ip, "ok": ok, "result": out})
             except BanRejected as e:
-                results.append({"ip": ip, "ok": False, "result": str(e)})
+                results.append({"ip": ip, "ok": False, "result": str(e), "code": e.code})
         return results
 
-    def unban_many(self, ips):
-        return [dict(ip=ip, ok=(r := self.unban(ip))[0], result=r[1]) for ip in ips]
+    def unban_many(self, ips, actor_ip=""):
+        return [dict(ip=ip, ok=(r := self.unban(ip, actor_ip))[0], result=r[1]) for ip in ips]
 
     def status(self):
         return self.firewall.status(self.jail)

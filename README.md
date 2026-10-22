@@ -4,11 +4,12 @@
 
 Evil2Ban đọc log nginx (`/www/wwwlogs/*.log`), journald SSH và fail2ban để phát
 hiện quét lỗ hổng / brute-force, thống kê traffic + User-Agent, chặn/gỡ chặn IP,
-và vẽ biểu đồ theo ngày/tháng (đường, nến OHLC, cột) ngay trên một WebUI nhẹ
-**không phụ thuộc CDN** (vào qua SSH tunnel). Kèm TUI dòng lệnh và tích hợp
-notifier Telegram/Slack/Discord có sẵn.
+theo dõi **realtime**, chặn ở cả **tầng tường lửa lẫn tầng web (Nginx)**, ngay trên
+một WebUI nhẹ **không phụ thuộc CDN**, song ngữ **VI/EN**, giao diện **sáng/tối**.
+Kèm TUI dòng lệnh và cảnh báo qua Telegram/Slack/Discord.
 
-> Dashboard **chỉ bind `127.0.0.1`** — không phơi ra Internet. Truy cập qua SSH tunnel.
+> Dashboard **chỉ bind `127.0.0.1`**. Ra Internet chỉ qua reverse proxy (Nginx + Cloudflare)
+> hoặc SSH tunnel.
 
 ---
 
@@ -19,9 +20,26 @@ notifier Telegram/Slack/Discord có sẵn.
 - **Real-IP Cloudflare an toàn** — *không bao giờ* chặn dải IP Cloudflare (tránh
   sập toàn bộ site); ưu tiên `CF-Connecting-IP` / `X-Forwarded-For` khi log có ghi.
   Request sau CDN không truy được client thật thì **bỏ qua** thay vì chặn nhầm.
-- **WebUI** với sidebar trái: **Dashboard · Monitor · Blacklist**. Trang Blacklist
-  có tìm kiếm, phân trang, chặn/gỡ chặn hàng loạt. Biểu đồ **đường / nến OHLC / cột**
-  theo ngày/tháng, canvas thuần không CDN.
+- **WebUI** (v1.2) — sidebar chia nhóm (mở/đóng bằng +/−, thu gọn về dải icon,
+  `Ctrl+B`): **Tổng quan · Giám sát · Chặn IP · Tên miền · Nhật ký · Cài đặt**.
+  - **Realtime**: một kết nối SSE, server đẩy số liệu mỗi 5 giây (request/phút,
+    SSH sai/phút, đang chặn, nghi vấn) kèm đồ thị nhỏ; tự chuyển sang hỏi lại 5 giây
+    nếu SSE hỏng.
+  - **Cảnh báo IP cào nhanh**: vượt ngưỡng request/phút (mặc định 120, chỉ tính IP
+    thật) → thông báo góc màn có nút **Chặn ngay**, chuông, và gửi Telegram/Slack/Discord.
+  - **Tên miền (DomainGate)**: số liệu theo từng site, mỗi site một cổng
+    *Tắt / Chỉ giám sát / Tự chặn* với ngưỡng 404 riêng.
+  - **Bản đồ** request theo quốc gia (SVG nhúng sẵn, Natural Earth, Equal Earth).
+  - **Nhật ký audit**: đăng nhập (cả thất bại), chặn/gỡ, whitelist, đổi cài đặt,
+    đổi mật khẩu, tạo lại token — kèm **IP người làm**, lọc, xuất CSV, giữ 90 ngày.
+  - **Cài đặt** trên web: tài khoản, ngưỡng phát hiện, kênh cảnh báo (webhook,
+    gửi thử), email, link công khai, giao diện; mỗi dòng tự lưu.
+  - Song ngữ **VI/EN**, **sáng/tối/theo hệ thống**, câu lỗi có dấu kèm mã lỗi.
+- **Chặn ở tầng web** (`evil2ban-setup --web-gate on`): IP bị chặn thấy **trang 403
+  Evil2Ban** trên mọi site gắn cổng, kể cả khi đi qua Cloudflare (Nginx khôi phục IP
+  thật rồi so danh sách `geo`, tự đồng bộ với fail2ban mỗi phút).
+- **GeoIP tại chỗ** — DB-IP Lite Country (CC BY 4.0), nén ~2 MB, tự cập nhật mỗi tháng,
+  không gọi dịch vụ ngoài khi tra.
 - **TUI** (`evil2ban`) menu 1/2/3 + reset mật khẩu qua email.
 - **fail2ban** để thực thi chặn; **notifier** Telegram/Slack/Discord dùng lại
   `/usr/local/bin/f2b-notify.sh`.
@@ -60,7 +78,7 @@ cli/         wizard (installer/first-run) + tui
 ```bash
 # cần python3-venv, dpkg-dev
 bash packaging/build-deb.sh
-# -> ../evil2ban_1.0.0_all.deb
+# -> ../evil2ban_1.2.0_all.deb
 ```
 
 **2) Dựng APT repo tự host:**
@@ -115,14 +133,44 @@ evil2ban-server         # chạy backend (host/port lấy từ SQLite)
 ```bash
 sudo evil2ban-setup --print    # in lại link WebUI + token
 sudo evil2ban-setup --reset-creds   # sinh lại tài khoản
+sudo evil2ban-setup --public-url https://e2b.ten-mien-cua-ban   # đặt link công khai
 ```
 
-## Truy cập WebUI (SSH tunnel)
+## Chặn ở tầng web + trang 403
+
+Khách đi qua Cloudflare thì kết nối TCP tới máy chủ là IP Cloudflare, nên chặn bằng
+tường lửa (fail2ban) theo IP thật **không có tác dụng** với web. Cổng web giải quyết:
 
 ```bash
-ssh -N -L 8793:127.0.0.1:8793 <user>@<server-ip>
+sudo evil2ban-setup --web-gate on    # gắn vào mọi vhost aaPanel có thư mục extension
+sudo evil2ban-setup --web-gate off   # gỡ
+```
+
+- Tạo `geo $e2b_blocked` ở tầng `http` + mỗi site một file trong
+  `/www/server/panel/vhost/nginx/extension/<site>/evil2ban.conf`, bật khôi phục IP thật
+  sau Cloudflare cho site chưa có (từ đó log và ứng dụng thấy **IP thật của khách**).
+- Chỉ IP bị Evil2Ban chặn mới thấy trang 403 (`/usr/lib/evil2ban/www`, SSI chèn IP,
+  mã tham chiếu, thời gian); trang 403 vốn có của site giữ nguyên.
+- Mỗi lần ghi danh sách đều chạy `nginx -t`, lỗi thì tự trả file cũ.
+- Vhost không có `include .../extension/<site>/*.conf` thì không gắn được (tự thêm
+  dòng include đó vào vhost rồi chạy lại lệnh).
+
+## Truy cập WebUI
+
+`evil2ban-setup --print` in sẵn cả hai cách, kèm token và IP public của server
+(đọc từ card mạng, không gọi dịch vụ ngoài):
+
+1. **Link công khai** — khi đã dựng reverse proxy (Nginx + Cloudflare) trỏ vào
+   `127.0.0.1:8793` và đặt link bằng `--public-url`:
+   `https://e2b.ten-mien-cua-ban/?token=<token>`
+2. **SSH tunnel** — không cần mở gì ra Internet:
+
+```bash
+ssh -N -L 8793:127.0.0.1:8793 <user>@<ip-server>
 # rồi mở: http://127.0.0.1:8793/?token=<token>
 ```
+
+> Link có `?token=` là đăng nhập thẳng, giữ kín như mật khẩu.
 
 ## TUI
 
@@ -172,6 +220,12 @@ bộ site**. Evil2Ban:
 sudo apt remove evil2ban     # giữ dữ liệu
 sudo apt purge  evil2ban     # xóa luôn /var/lib/evil2ban, /etc/evil2ban
 ```
+
+## Nguồn dữ liệu bên thứ ba
+
+- Vị trí IP: **IP Geolocation by DB-IP** (db-ip.com), CC BY 4.0.
+- Bản đồ: **Natural Earth** (qua `world-atlas`), phạm vi công cộng.
+- Icon: **Lucide** (ISC). Thông báo: **SweetAlert2** (MIT), đóng gói sẵn, không CDN.
 
 ## Giấy phép
 

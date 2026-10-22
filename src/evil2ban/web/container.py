@@ -14,10 +14,16 @@ from ..detect.realip import CloudflareRealIpResolver
 from ..detect.parser import NginxAccessLogSource, LogParser
 from ..detect.rules import DEFAULT_RULES
 from ..detect.detector import ScanDetector, TrafficAnalyzer
-from ..infra.geo import IpinfoGeoLocator, NullGeoLocator
+from ..infra.geo import LocalGeoLocator, NullGeoLocator
+from ..paths import state_dir
 from ..infra.fail2ban import Fail2banFirewall, JournaldSshReader
-from ..infra.notifier import ScriptNotifier
-from ..infra.mailer import SmtpMailer
+from ..infra.mailer import SettingsMailer
+from ..infra.webblock import NginxWebGate
+from ..detect.ratewatch import RateWatcher
+from ..services.notify_service import ChannelNotifier
+from ..services.live_service import LiveService
+from ..services.settings_service import SettingsService
+from ..services.domain_service import DomainService
 from ..services.ban_service import BanService, BanGuard, AutoBanPolicy
 from ..services.auth_service import AuthService
 from ..services.analysis_service import AnalysisService
@@ -42,11 +48,11 @@ class Container:
         self.jail = s.get("detect.jail", "E2B_JAIL", "sshd")
         self.host = s.get("server.host", "E2B_HOST", "127.0.0.1")
         self.port = s.get_int("server.port", "E2B_PORT", 8793)
-        self.autoban = s.get_bool("detect.autoban", "E2B_AUTOBAN", False)
 
         # --- infrastructure ---
-        self.geo = (IpinfoGeoLocator() if s.get_bool("detect.geoip", "E2B_GEOIP", True)
-                    else NullGeoLocator())
+        # GeoIP tai cho (DB-IP Lite): khong goi dich vu ngoai, tu cap nhat moi thang
+        self.geo = (LocalGeoLocator(str(state_dir() / "geoip-country.bin"))
+                    if s.get_bool("detect.geoip", "E2B_GEOIP", True) else NullGeoLocator())
         self.resolver = CloudflareRealIpResolver()
         self.source = NginxAccessLogSource(
             s.get("detect.log_dir", "E2B_LOG_DIR", "/www/wwwlogs"),
@@ -59,24 +65,51 @@ class Container:
             is_whitelisted=self.whitelist.matches, geo=self.geo.country)
         self.firewall = Fail2banFirewall(self.geo.country)
         self.ssh = JournaldSshReader(self.geo.country)
-        self.notifier = ScriptNotifier(
-            s.get("notify.script", default="/usr/local/bin/f2b-notify.sh"))
-        self.mailer = SmtpMailer(
-            s.get("mail.smtp_host", default="smtp.gmail.com"),
-            s.get_int("mail.smtp_port", default=587),
-            s.get("mail.smtp_user", default=""),
-            s.get("mail.smtp_pass", default=""),
-            s.get("mail.admin_email", default=""))
+        self.notifier = ChannelNotifier(self.settings, self.meta)
+        self.notifier.import_conf()          # lay kenh da co san trong notify.conf
+        self.mailer = SettingsMailer(self.settings)
 
         # --- services ---
         self.guard = BanGuard(self.resolver, self.whitelist.matches)
         self.ban_service = BanService(self.firewall, self.notifier, self.events,
                                       self.guard, self.jail)
-        self.auth = AuthService(self.settings, self.sessions, self.mailer)
+        self.auth = AuthService(self.settings, self.sessions, self.mailer, meta=self.meta)
         self.analysis = AnalysisService(
             self.analyzer, self.firewall, self.ssh, self.jail, __version__,
             ttl=s.get_int("detect.cache_ttl", "E2B_CACHE", 20))
         self.stats = StatsService(self.samples, self.meta, self.analyzer,
                                   self.firewall, self.ssh, self.jail)
-        self.autoban_policy = AutoBanPolicy(
-            s.get_int("detect.autoban_404", "E2B_AUTOBAN_404", 40))
+        self.settings_svc = SettingsService(self.settings, self.notifier, self.events)
+        self.domains = DomainService(self.source, self.parser, self.scan_detector,
+                                     self.resolver, self.whitelist.matches,
+                                     self.settings, self.events)
+        self.ratewatch = RateWatcher(
+            self.source, self.parser, self.resolver, self.whitelist.matches,
+            threshold_fn=lambda: self.settings.get_int("detect.rate_alert", default=120),
+            on_alert=self._on_rate_alert)
+        self.live = LiveService(self.ratewatch, self.analysis, self.samples, self.settings)
+        self.stats.rate = self.ratewatch
+        self.webgate = NginxWebGate(self.settings)
+
+    def sync_webgate(self):
+        """Dong bo danh sach IP dang bi fail2ban chan sang Nginx (tra 403 o tang web)."""
+        try:
+            self.analysis.drop_banned()
+            return self.webgate.sync([b["ip"] for b in self.analysis.banned().banned])
+        except Exception:  # noqa: BLE001
+            return False
+
+    # --- doc dong (doi tren WebUI co hieu luc ngay, khong can khoi dong lai) ---
+    @property
+    def autoban(self):
+        return self.settings.get_bool("detect.autoban", "E2B_AUTOBAN", False)
+
+    @property
+    def autoban_policy(self):
+        return AutoBanPolicy(self.settings.get_int("detect.autoban_404", "E2B_AUTOBAN_404", 40))
+
+    def _on_rate_alert(self, a):
+        self.events.add("rate-alert", a["ip"], reason="auto",
+                        detail=f"{a['rpm']} request/phút (ngưỡng {a['threshold']})")
+        self.notifier.notify("rate", "⚡ IP đang cào quá nhanh",
+                             [f"IP: {a['ip']}", f"Tốc độ: {a['rpm']} request/phút (ngưỡng {a['threshold']})"])

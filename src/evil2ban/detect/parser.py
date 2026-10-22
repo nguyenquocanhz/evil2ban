@@ -48,6 +48,23 @@ class NginxAccessLogSource(LogSource):
             for ln in self._tail(f, self.tail_lines):
                 yield ln
 
+    def files_all(self):
+        """Moi access log (khong gioi han max_files) — cho theo doi realtime / DomainGate."""
+        return [f for f in glob.glob(os.path.join(self.log_dir, "*.log"))
+                if "error" not in os.path.basename(f)
+                and "tcp-" not in os.path.basename(f)]
+
+    @staticmethod
+    def domain_of(path):
+        return os.path.basename(path)[:-4] if path.endswith(".log") else os.path.basename(path)
+
+    def lines_by_file(self, tail=2000):
+        """(ten-mien, dong) cho moi file log, tail it hon de nhe CPU."""
+        for f in self.files_all():
+            d = self.domain_of(f)
+            for ln in self._tail(f, tail):
+                yield d, ln
+
 
 class LogParser:
     """Chuyen dong raw -> LogEntry, dung IpResolver de khoi phuc real-IP."""

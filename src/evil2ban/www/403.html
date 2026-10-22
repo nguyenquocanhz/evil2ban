@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>403 · Truy cập bị chặn — Evil2Ban</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e5484d'/></svg>">
+<style>
+  :root {
+    --bg: #0a0a0b; --surface: #131316; --border: rgb(255 255 255 / .08); --fg: #e7e7ea; --muted: #8b8b94;
+    --brand: #e5484d; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    min-height: 100vh; display: grid; place-items: center; padding: 32px 16px;
+    background: var(--bg); color: var(--fg); -webkit-font-smoothing: antialiased;
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow-x: hidden;
+  }
+  /* nền: lưới mờ + quầng đỏ, tắt dần về mép */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(600px 380px at 50% 28%, rgb(229 72 77 / .16), transparent 70%),
+      linear-gradient(rgb(255 255 255 / .035) 1px, transparent 1px) 0 0 / 44px 44px,
+      linear-gradient(90deg, rgb(255 255 255 / .035) 1px, transparent 1px) 0 0 / 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 35%, #000 25%, transparent 75%);
+            mask-image: radial-gradient(ellipse at 50% 35%, #000 25%, transparent 75%);
+  }
+  main { position: relative; width: 100%; max-width: 560px; text-align: center; }
+  /* dấu thương hiệu: chấm đỏ + sóng lan */
+  .mark { position: relative; width: 132px; height: 132px; margin: 0 auto 28px; display: grid; place-items: center; }
+  .mark .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgb(229 72 77 / .55); opacity: 0; animation: wave 3.6s cubic-bezier(.2,.6,.3,1) infinite; }
+  .mark .ring:nth-child(2) { animation-delay: 1.2s; }
+  .mark .ring:nth-child(3) { animation-delay: 2.4s; }
+  .mark .tile { position: relative; width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center;
+    background: linear-gradient(145deg, #2a1416, #131316); border: 1px solid var(--border); box-shadow: 0 10px 40px rgb(229 72 77 / .18); }
+  .mark .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 18px var(--brand), 0 0 42px rgb(229 72 77 / .6); animation: beat 1.8s ease-in-out infinite; }
+  @keyframes wave { 0% { transform: scale(.45); opacity: 0; } 15% { opacity: .9; } 100% { transform: scale(1.35); opacity: 0; } }
+  @keyframes beat { 50% { transform: scale(.82); box-shadow: 0 0 10px var(--brand), 0 0 24px rgb(229 72 77 / .4); } }
+  .code { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 4px 12px; border-radius: 9999px;
+    border: 1px solid rgb(229 72 77 / .35); background: rgb(229 72 77 / .1); color: #ff8a8e; font: 600 12px/18px var(--mono); letter-spacing: .08em; }
+  h1 { margin: 0; font-size: 28px; line-height: 1.25; font-weight: 650; letter-spacing: -.01em; }
+  .en-title { margin: 4px 0 18px; color: var(--muted); font-size: 15px; }
+  p.lead { margin: 0 auto; max-width: 480px; color: #c9c9cf; }
+  p.lead-en { margin: 8px auto 0; max-width: 480px; color: var(--muted); font-size: 14px; }
+  .card { margin: 28px auto 0; padding: 4px 0; max-width: 460px; border: 1px solid var(--border); border-radius: 16px; background: rgb(19 19 22 / .85); text-align: left; backdrop-filter: blur(4px); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 18px; }
+  .row + .row { border-top: 1px solid var(--border); }
+  .k { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .v { font: 13px/1.5 var(--mono); color: var(--fg); text-align: right; overflow-wrap: anywhere; }
+  .copy { margin-left: 8px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--muted); font: 12px var(--mono); cursor: pointer; }
+  .copy:hover { color: var(--fg); border-color: rgb(255 255 255 / .18); }
+  .help { margin: 22px auto 0; max-width: 460px; color: var(--muted); font-size: 13px; }
+  .brand { margin-top: 30px; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; letter-spacing: .02em; }
+  .brand i { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 8px var(--brand); }
+  .brand b { color: var(--fg); font-weight: 600; }
+  @media (max-width: 480px) { h1 { font-size: 23px; } .row { flex-direction: column; align-items: flex-start; gap: 2px; } .v { text-align: left; } }
+  @media (prefers-reduced-motion: reduce) { .mark .ring, .mark .dot { animation: none; } .mark .ring { opacity: .3; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark" aria-hidden="true"><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="tile"><span class="dot"></span></span></div>
+  <span class="code">403 · FORBIDDEN</span>
+  <h1>Truy cập bị chặn</h1>
+  <p class="en-title">Access blocked</p>
+  <p class="lead">Evil2Ban đã chặn địa chỉ IP của bạn vì phát hiện truy cập bất hợp pháp tới website này: dò quét lỗ hổng, đăng nhập trái phép hoặc gửi request quá nhanh.</p>
+  <p class="lead-en">Evil2Ban blocked your IP address after detecting unauthorized access to this website: vulnerability scanning, unauthorized login attempts or excessive requests.</p>
+
+  <div class="card" role="group" aria-label="Chi tiết / Details">
+    <div class="row"><span class="k">IP của bạn · Your IP</span><span class="v"><!--#echo var="remote_addr" --></span></div>
+    <div class="row"><span class="k">Website</span><span class="v"><!--#echo var="host" --></span></div>
+    <div class="row"><span class="k">Mã tham chiếu · Reference</span><span class="v"><span id="ref"><!--#echo var="request_id" --></span><button class="copy" type="button" id="cp">Chép</button></span></div>
+    <div class="row"><span class="k">Thời gian · Time</span><span class="v"><!--#echo var="time_iso8601" --></span></div>
+  </div>
+
+  <p class="help">Nếu bạn cho rằng đây là nhầm lẫn, hãy gửi mã tham chiếu cho quản trị viên website.<br>If you believe this is a mistake, send the reference code to the site administrator.</p>
+  <div class="brand"><i></i>Bảo vệ bởi <b>Evil2Ban</b></div>
+</main>
+<script>
+  (function () {
+    var b = document.getElementById("cp"), r = document.getElementById("ref");
+    if (!b || !r || !navigator.clipboard) { if (b) b.remove(); return; }
+    b.addEventListener("click", function () {
+      navigator.clipboard.writeText(r.textContent.trim()).then(function () { b.textContent = "Đã chép"; setTimeout(function () { b.textContent = "Chép"; }, 1500); });
+    });
+  })();
+</script>
+</body>
+</html>

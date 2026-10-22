@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 DEFAULT_SETTINGS = {
     "server.host": "127.0.0.1",
     "server.port": "8793",
+    "server.public_url": "",   # link cong khai qua reverse proxy, vd https://e2b.example.com
     "detect.jail": "sshd",
     "detect.log_dir": "/www/wwwlogs",
     "detect.tail_lines": "4000",
@@ -33,8 +34,22 @@ DEFAULT_SETTINGS = {
     "notify.conf": "/etc/fail2ban/notify.conf",
     "notify.telegram_bot_token": "",
     "notify.telegram_admin_id": "",
+    "notify.slack_webhook": "",
+    "notify.discord_webhook": "",
+    "notify.telegram_on": "1",
+    "notify.slack_on": "1",
+    "notify.discord_on": "1",
+    "notify.on_ban": "1",          # gui khi chan IP
+    "notify.on_rate": "1",         # gui khi IP cao qua nhanh
+    "notify.on_login_fail": "1",   # gui khi dang nhap that bai (tu lan 3 lien tiep)
+    "notify.on_settings": "0",     # gui khi doi cai dat
+    "detect.rate_alert": "120",    # request/phut/IP that de canh bao
+    "gate.modes": "{}",            # {ten-mien: chan|giam-sat|tat}
+    "gate.thresholds": "{}",       # {ten-mien: nguong 404 rieng}
+    "audit.keep_days": "90",
+    "web.block": "1",              # dong bo IP bi chan sang Nginx, tra trang 403
 }
-_SECRET_HINT = ("password", "token", "smtp_pass", "secret")
+_SECRET_HINT = ("password", "token", "smtp_pass", "secret", "webhook")
 ALWAYS_WL = ["127.0.0.1", "::1"]
 
 _MONTHS = {m: i for i, m in enumerate(
@@ -176,22 +191,70 @@ class SessionRepository:
         with self.db.conn() as c:
             c.execute("DELETE FROM sessions WHERE expiry<?", (int(time.time()),))
 
+    def purge_all(self):
+        with self.db.conn() as c:
+            c.execute("DELETE FROM sessions")
+
 
 class EventRepository:
     def __init__(self, db):
         self.db = db
 
-    def add(self, type_, ip, jail="", reason="", detail=""):
+    # nhom loai viec cho bo loc audit
+    GROUPS = {
+        "login": ("login", "login-fail", "logout-all"),
+        "ban": ("ban", "unban", "rate-alert"),
+        "whitelist": ("whitelist-add", "whitelist-remove"),
+        "settings": ("settings", "gate-mode"),
+        "account": ("password-change", "token-regen", "reset-password", "account-reset"),
+    }
+    _COLS = "id,ts,type,ip,jail,reason,detail,actor_ip,result"
+
+    def add(self, type_, ip, jail="", reason="", detail="", actor_ip="", result="ok"):
         with self.db.conn() as c:
-            c.execute("INSERT INTO events(ts,type,ip,jail,reason,detail) "
-                      "VALUES(?,?,?,?,?,?)",
-                      (int(time.time()), type_, ip, jail, reason, detail))
+            c.execute("INSERT INTO events(ts,type,ip,jail,reason,detail,actor_ip,result) "
+                      "VALUES(?,?,?,?,?,?,?,?)",
+                      (int(time.time()), type_, ip or "", jail, reason, detail,
+                       actor_ip or "", result))
 
     def recent(self, limit=100):
         rows = self.db.conn().execute(
-            "SELECT ts,type,ip,jail,reason,detail FROM events "
-            "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+            f"SELECT {self._COLS} FROM events ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
         return [dict(r) for r in rows]
+
+    def _where(self, group="", days=0, q=""):
+        sql, args = [], []
+        if group in self.GROUPS:
+            types = self.GROUPS[group]
+            sql.append("type IN (%s)" % ",".join("?" * len(types)))
+            args += list(types)
+        if days:
+            sql.append("ts>=?")
+            args.append(int(time.time()) - int(days) * 86400)
+        if q:
+            sql.append("(ip LIKE ? OR detail LIKE ? OR reason LIKE ? OR actor_ip LIKE ? OR type LIKE ?)")
+            args += [f"%{q}%"] * 5
+        return (" WHERE " + " AND ".join(sql)) if sql else "", args
+
+    def query(self, group="", days=0, q="", limit=10, offset=0):
+        where, args = self._where(group, days, q)
+        conn = self.db.conn()
+        total = conn.execute(f"SELECT COUNT(*) FROM events{where}", args).fetchone()[0]
+        rows = conn.execute(f"SELECT {self._COLS} FROM events{where} "
+                            "ORDER BY id DESC LIMIT ? OFFSET ?",
+                            args + [int(limit), int(offset)]).fetchall()
+        return [dict(r) for r in rows], total
+
+    def counts(self, days=0):
+        """So su kien theo tung nhom (cho the loc)."""
+        out = {"all": self.query("", days, "", 0, 0)[1]}
+        for g in self.GROUPS:
+            out[g] = self.query(g, days, "", 0, 0)[1]
+        return out
+
+    def prune(self, keep_days=90):
+        with self.db.conn() as c:
+            c.execute("DELETE FROM events WHERE ts<?", (int(time.time()) - keep_days * 86400,))
 
 
 class MetaRepository:

@@ -58,3 +58,10 @@ class Database:
             CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
             CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
             """)
+            # migration: cot audit (IP nguoi lam + ket qua) cho bang events cu
+            cols = {r[1] for r in c.execute("PRAGMA table_info(events)")}
+            if "actor_ip" not in cols:
+                c.execute("ALTER TABLE events ADD COLUMN actor_ip TEXT DEFAULT ''")
+            if "result" not in cols:
+                c.execute("ALTER TABLE events ADD COLUMN result TEXT DEFAULT 'ok'")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_events_type ON events(type)")
