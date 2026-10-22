@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   var X, EL, S = { st: "wait", d: null, group: "", days: 7, q: "", page: 1, per: 10, ddOpen: false };
-  var GROUPS = [["", "au.all", "all"], ["login", "au.login", "login"], ["ban", "au.ban", "ban"], ["whitelist", "au.whitelist", "whitelist"], ["settings", "au.settings", "settings"], ["account", "au.account", "account"]];
+  var GROUPS = [["", "au.all", "all"], ["login", "au.login", "login"], ["ban", "au.ban", "ban"], ["whitelist", "au.whitelist", "whitelist"], ["settings", "au.settings", "settings"], ["account", "au.account", "account"], ["ddos", "au.ddos", "ddos"]];
   var DAYS = [[1, "au.days1"], [7, "au.days7"], [30, "au.days30"], [90, "au.days90"]];
   var ICON = { "login": ["log-in", "ok"], "login-fail": ["shield-x", "danger"], "logout-all": ["log-out", ""], "ban": ["shield-ban", "danger"], "unban": ["shield-check", "ok"],
     "rate-alert": ["zap", "warn"], "whitelist-add": ["list-checks", "ok"], "whitelist-remove": ["list-checks", ""], "settings": ["settings", ""], "gate-mode": ["globe-lock", ""],

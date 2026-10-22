@@ -28,6 +28,7 @@ SCHEMA = {
     "notify.on_ban": ("bool", False, False),
     "notify.on_rate": ("bool", False, False),
     "notify.on_login_fail": ("bool", False, False),
+    "notify.on_ddos": ("bool", False, False),
     "notify.on_settings": ("bool", False, False),
     "mail.smtp_host": ("str", False, False),
     "mail.smtp_port": ("int:1:65535", False, False),

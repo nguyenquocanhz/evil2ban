@@ -209,7 +209,7 @@
   // ---------------- sidebar: nhóm +/−, thu gọn ----------------
   var GROUPS = [
     ["nav.group.monitor", [["dashboard", "nav.dashboard", "layout-dashboard"], ["monitor", "nav.monitor", "activity"]]],
-    ["nav.group.defense", [["blacklist", "nav.blacklist", "shield-ban", true], ["domains", "nav.domains", "globe-lock"]]],
+    ["nav.group.defense", [["blacklist", "nav.blacklist", "shield-ban", true], ["domains", "nav.domains", "globe-lock"], ["ddos", "nav.ddos", "shield-half"]]],
     ["nav.group.system", [["audit", "nav.audit", "scroll-text"], ["settings", "nav.settings", "settings"]]]
   ];
   function closedGroups() { try { return JSON.parse(localStorage.getItem("e2b_grp") || "[]"); } catch (e) { return []; } }
@@ -337,8 +337,8 @@
   document.addEventListener("click", function (e) { if (!e.target.closest("#bell-wrap")) closeBell(); });
 
   // ---------------- định tuyến + nạp màn khi cần (lazy load) ----------------
-  var VIEWS = { dashboard: "nav.dashboard", monitor: "nav.monitor", blacklist: "nav.blacklist", domains: "nav.domains", audit: "nav.audit", settings: "nav.settings" };
-  var LAZY = { domains: 1, audit: 1, settings: 1 };
+  var VIEWS = { dashboard: "nav.dashboard", monitor: "nav.monitor", blacklist: "nav.blacklist", domains: "nav.domains", ddos: "nav.ddos", audit: "nav.audit", settings: "nav.settings" };
+  var LAZY = { domains: 1, ddos: 1, audit: 1, settings: 1 };
   var VIEW = "dashboard";
   window.addEventListener("hashchange", route);
   function loadPage(name) {
@@ -346,7 +346,7 @@
     if (window.E2BPages[name]) return Promise.resolve(window.E2BPages[name]);
     return new Promise(function (res, rej) {
       var s = document.createElement("script");
-      s.src = "js/pages/" + name + ".js?v=1.2.2";
+      s.src = "js/pages/" + name + ".js?v=1.3.0";
       s.onload = function () { res(window.E2BPages[name]); }; s.onerror = rej;
       document.head.appendChild(s);
     });
@@ -473,7 +473,7 @@
     if (window.E2BWorldMap || loadWorldMap.p) return;
     loadWorldMap.p = true;
     var sc = document.createElement("script");
-    sc.src = "js/worldmap.js?v=1.2.2";
+    sc.src = "js/worldmap.js?v=1.3.0";
     sc.onload = function () { if (VIEW === "monitor" && MN.st === "data") renderMonitor(); };
     document.head.appendChild(sc);
   }
@@ -697,7 +697,7 @@
   var CTX = { api: api, t: t, I18N: I18N, esc: esc, fmt: fmt, ic: ic, mono: mono, card: card, sk: sk, skRows: skRows, errBody: errBody,
     empty: empty, pill: pill, pagerHtml: pagerHtml, toast: toast, notify: notify, confirmDanger: confirmDanger, errMsg: errMsg,
     timeLabel: timeLabel, gate: gate, settle: settle, reloading: reloading, ban: ban, logout: logout, applyTheme: applyTheme,
-    themeMode: themeMode, setLang: setLang, DASH: DASH };
+    themeMode: themeMode, setLang: setLang, DASH: DASH, spark: spark };
 
   // khởi động: thử gọi overview; 401 -> màn đăng nhập
   function boot() {

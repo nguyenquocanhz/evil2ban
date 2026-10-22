@@ -19,6 +19,8 @@ from ..paths import state_dir
 from ..infra.fail2ban import Fail2banFirewall, JournaldSshReader
 from ..infra.mailer import SettingsMailer
 from ..infra.webblock import NginxWebGate
+from ..infra.ddos import DdosShield
+from ..services.ddos_service import DdosService
 from ..detect.ratewatch import RateWatcher
 from ..services.notify_service import ChannelNotifier
 from ..services.live_service import LiveService
@@ -90,6 +92,12 @@ class Container:
         self.live = LiveService(self.ratewatch, self.analysis, self.samples, self.settings)
         self.stats.rate = self.ratewatch
         self.webgate = NginxWebGate(self.settings)
+        self.shield = DdosShield(self.settings, self._owner_allow)
+        self.ddos = DdosService(self.shield, self.settings, self.events, self.notifier, self.whitelist.matches)
+
+    def _owner_allow(self):
+        """IP/CIDR cua chu (khong gom Cloudflare — nft co set Cloudflare rieng)."""
+        return [w["entry"] for w in self.whitelist.all() if w["source"] != "cloudflare"]
 
     def sync_webgate(self):
         """Dong bo danh sach IP dang bi fail2ban chan sang Nginx (tra 403 o tang web)."""

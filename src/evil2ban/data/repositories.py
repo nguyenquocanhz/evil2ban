@@ -43,6 +43,11 @@ DEFAULT_SETTINGS = {
     "notify.on_rate": "1",         # gui khi IP cao qua nhanh
     "notify.on_login_fail": "1",   # gui khi dang nhap that bai (tu lan 3 lien tiep)
     "notify.on_settings": "0",     # gui khi doi cai dat
+    "notify.on_ddos": "1",         # gui khi bi flood / tu chan IP flood
+    "ddos.config": "{}",           # lop chong DDoS da xac nhan (JSON)
+    "ddos.th": "{}",               # nguong chong DDoS (JSON)
+    "ddos.alert_synrecv": "200",   # bao dot SYN Flood khi so ket noi do dang vuot muc nay
+    "ddos.alert_pps": "5000",      # bao dot UDP/ICMP Flood khi goi/giay vuot muc nay
     "detect.rate_alert": "120",    # request/phut/IP that de canh bao
     "gate.modes": "{}",            # {ten-mien: chan|giam-sat|tat}
     "gate.thresholds": "{}",       # {ten-mien: nguong 404 rieng}
@@ -207,6 +212,7 @@ class EventRepository:
         "whitelist": ("whitelist-add", "whitelist-remove"),
         "settings": ("settings", "gate-mode"),
         "account": ("password-change", "token-regen", "reset-password", "account-reset"),
+        "ddos": ("ddos-apply", "ddos-confirm", "ddos-revert", "ddos-flood", "ddos-block"),
     }
     _COLS = "id,ts,type,ip,jail,reason,detail,actor_ip,result"
 

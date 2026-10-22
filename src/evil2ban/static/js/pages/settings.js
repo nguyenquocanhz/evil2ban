@@ -89,6 +89,7 @@
       row(t("set.onBan"), sw("notify.on_ban"), t("set.onBanDesc")),
       row(t("set.onRate"), sw("notify.on_rate"), t("set.onRateDesc")),
       row(t("set.onLogin"), sw("notify.on_login_fail"), t("set.onLoginDesc")),
+      row(t("set.onDdos"), sw("notify.on_ddos"), t("set.onDdosDesc")),
       row(t("set.onSettings"), sw("notify.on_settings"))
     ]) + section(t("set.mail"), [
       row(t("set.smtp"), '<div class="inline" style="flex-wrap:nowrap"><div style="flex:1;min-width:0">' + inp("mail.smtp_host") + '</div><div class="w-num">' + inp("mail.smtp_port", "", "587", "number") + "</div></div>"),

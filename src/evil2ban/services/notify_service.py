@@ -23,7 +23,7 @@ CONF_KEYS = {  # khoa notify.conf -> (khoa SQLite, khoa bat/tat)
     "DISCORD_WEBHOOK_URL": ("notify.discord_webhook", "notify.discord_on"),
 }
 EVENT_FLAG = {"rate": "notify.on_rate", "login_fail": "notify.on_login_fail",
-              "settings": "notify.on_settings"}
+              "settings": "notify.on_settings", "ddos": "notify.on_ddos"}
 
 
 def _post(url, data: bytes, ctype, timeout=6):

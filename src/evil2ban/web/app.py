@@ -99,6 +99,11 @@ class ThresholdReq(BaseModel):
     threshold: int
 
 
+class DdosReq(BaseModel):
+    layers: dict = {}
+    th: dict = {}
+
+
 # ---------------- auth ----------------
 _FAILS = defaultdict(deque)        # ip -> thoi diem dang nhap sai (10 phut gan nhat)
 _FAIL_LIMIT, _FAIL_WINDOW = 10, 600
@@ -309,6 +314,42 @@ def domain_threshold(r: ThresholdReq, request: Request):
     return {"ok": True, "threshold": C.domains.set_threshold(r.domain, r.threshold, actor_ip(request))}
 
 
+# ---------------- chong DDoS ----------------
+@app.get("/api/ddos")
+def ddos(request: Request):
+    s, me = C.ddos.snapshot(), actor_ip(request)
+    s["top"] = [{**t, "me": t["ip"] == me} for t in s["top"]]     # khong de nguoi dung tu chan minh
+    return s
+
+
+@app.post("/api/ddos/apply")
+def ddos_apply(r: DdosReq, request: Request):
+    changes, errs = C.ddos.apply(r.layers, r.th, actor_ip(request))
+    if errs:
+        return JSONResponse({"detail": "Áp dụng lỗi, đã trả lại như cũ: " + "; ".join(errs)[:400],
+                             "code": "ddos_apply_failed"}, status_code=500)
+    return {"ok": True, "changes": changes, "pending": C.shield.pending()}
+
+
+@app.post("/api/ddos/recommended")
+def ddos_recommended(request: Request):
+    changes, errs = C.ddos.recommended(actor_ip(request))
+    if errs:
+        return JSONResponse({"detail": "Áp dụng lỗi, đã trả lại như cũ: " + "; ".join(errs)[:400],
+                             "code": "ddos_apply_failed"}, status_code=500)
+    return {"ok": True, "changes": changes, "pending": C.shield.pending()}
+
+
+@app.post("/api/ddos/confirm")
+def ddos_confirm(request: Request):
+    return {"ok": True, "changes": C.ddos.confirm(actor_ip(request)) or []}
+
+
+@app.post("/api/ddos/revert")
+def ddos_revert(request: Request):
+    return {"ok": C.ddos.revert(actor_ip(request))}
+
+
 # ---------------- whitelist ----------------
 @app.get("/api/whitelist")
 def whitelist():
@@ -422,6 +463,7 @@ def _start():
     threading.Thread(target=_sampler_loop, daemon=True).start()
     threading.Thread(target=_autoban_loop, daemon=True).start()
     threading.Thread(target=C.ratewatch.run_forever, daemon=True).start()
+    threading.Thread(target=C.ddos.run_forever, daemon=True).start()
 
 
 app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="ui")

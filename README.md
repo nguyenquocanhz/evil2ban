@@ -21,7 +21,7 @@ Kèm TUI dòng lệnh và cảnh báo qua Telegram/Slack/Discord.
   sập toàn bộ site); ưu tiên `CF-Connecting-IP` / `X-Forwarded-For` khi log có ghi.
   Request sau CDN không truy được client thật thì **bỏ qua** thay vì chặn nhầm.
 - **WebUI** (v1.2) — sidebar chia nhóm (mở/đóng bằng +/−, thu gọn về dải icon,
-  `Ctrl+B`): **Tổng quan · Giám sát · Chặn IP · Tên miền · Nhật ký · Cài đặt**.
+  `Ctrl+B`): **Tổng quan · Giám sát · Chặn IP · Tên miền · Chống DDoS · Nhật ký · Cài đặt**.
   - **Realtime**: một kết nối SSE, server đẩy số liệu mỗi 5 giây (request/phút,
     SSH sai/phút, đang chặn, nghi vấn) kèm đồ thị nhỏ; tự chuyển sang hỏi lại 5 giây
     nếu SSE hỏng.
@@ -78,7 +78,7 @@ cli/         wizard (installer/first-run) + tui
 ```bash
 # cần python3-venv, dpkg-dev
 bash packaging/build-deb.sh
-# -> ../evil2ban_1.2.0_all.deb
+# -> ../evil2ban_1.3.0_all.deb
 ```
 
 **2) Dựng APT repo tự host:**
@@ -154,6 +154,27 @@ sudo evil2ban-setup --web-gate off   # gỡ
 - Mỗi lần ghi danh sách đều chạy `nginx -t`, lỗi thì tự trả file cũ.
 - Vhost không có `include .../extension/<site>/*.conf` thì không gắn được (tự thêm
   dòng include đó vào vhost rồi chạy lại lệnh).
+
+## Chống DDoS (v1.3)
+
+Màn **Chống DDoS** có số liệu sống mỗi 5 giây (kết nối dở dang SYN_RECV, kết nối đang mở,
+bảng conntrack, gói UDP + ICMP/giây), các IP mở nhiều kết nối nhất và 5 lớp bảo vệ bật/tắt:
+
+| Lớp | Làm gì | Ở đâu |
+|-----|--------|-------|
+| Khoá IP gốc | Cổng 80/443 chỉ nhận dải Cloudflare. Chỉ bật được khi **mọi** tên miền đã qua Cloudflare | nftables |
+| SYN Flood | `tcp_max_syn_backlog 4096`, `tcp_synack_retries 2`, syncookies + giới hạn SYN mới/IP | sysctl + nftables |
+| UDP Flood | Giới hạn gói UDP chưa có trả lời mỗi IP | nftables |
+| Ping of Death | Bỏ ping quá cỡ + giới hạn ping mỗi IP (kernel vốn đã miễn nhiễm) | nftables |
+| Slowloris | Timeout header/body 10 giây, 30 kết nối + 20 request/giây mỗi IP thật | Nginx (`0.evil2ban-ddos.conf`) |
+
+- IP vượt ngưỡng SYN/UDP bị **tự chặn 1 giờ**, có cảnh báo Telegram/Slack/Discord và nhật ký audit.
+- IP Cloudflare, loopback và whitelist **không bao giờ** bị đếm ngưỡng hay bị chặn.
+- Mọi thay đổi **tự hoàn tác sau 60 giây** (hẹn bằng `systemd-run`) nếu không bấm *Giữ thay đổi*:
+  có đổi nhầm cũng không tự khoá mất máy chủ.
+- Bảng riêng `inet evil2ban_ddos`, chỉ DROP; không đụng bảng của ufw hay fail2ban.
+- Giới hạn thật: flood **băng thông lớn** làm nghẽn đường mạng trước khi tới máy, phải nhờ
+  Cloudflare hoặc nhà cung cấp VPS chặn.
 
 ## Truy cập WebUI
 
