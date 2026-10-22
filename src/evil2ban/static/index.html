@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Evil2Ban</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23e5484d'/></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- sidebar -->
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><span>Evil2Ban</span></div>
+    <nav class="nav">
+      <button data-v="dashboard" class="active"><span class="ico">▣</span><span class="txt">Dashboard</span></button>
+      <button data-v="monitor"><span class="ico">◉</span><span class="txt">Monitor</span></button>
+      <button data-v="blacklist"><span class="ico">⛔</span><span class="txt">Blacklist</span></button>
+    </nav>
+    <div class="side-foot">
+      <div>127.0.0.1 · SSH tunnel</div>
+      <button id="logout">Dang xuat</button>
+    </div>
+  </aside>
+
+  <!-- main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="title">Dashboard</h1>
+        <div class="meta" id="meta">—</div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view">
+      <div class="grid stats" id="stats"></div>
+      <div class="card" style="margin-top:16px">
+        <div class="panel-title">Bieu do theo thoi gian
+          <span class="hint">OHLC/ngay tu bien dong theo gio</span>
+        </div>
+        <div class="chart-controls">
+          <div class="seg" id="chart-type">
+            <button data-t="line" class="active">Duong</button>
+            <button data-t="candles">Nen</button>
+            <button data-t="bars">Cot</button>
+          </div>
+          <div class="seg" id="chart-gran">
+            <button data-g="daily" class="active">Theo ngay</button>
+            <button data-g="monthly">Theo thang</button>
+          </div>
+          <select id="chart-metric" class="btn" style="padding:7px 10px">
+            <option value="requests">Tong request</option>
+            <option value="errors404">Loi 404</option>
+            <option value="scanners">Scanner</option>
+            <option value="ssh_failed">SSH brute-force</option>
+            <option value="bans">So IP bi chan</option>
+          </select>
+        </div>
+        <div class="chart-wrap"><canvas id="chart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- MONITOR -->
+    <section id="view-monitor" class="view hidden">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card"><div class="panel-title">SSH brute-force (6h)</div><div id="mon-ssh"></div></div>
+        <div class="card"><div class="panel-title">User bi thu nhieu nhat</div><div id="mon-users"></div></div>
+        <div class="card"><div class="panel-title">Top traffic (IP that, ngoai CF)</div><div id="mon-traffic"></div></div>
+        <div class="card"><div class="panel-title">Top User-Agent</div><div id="mon-ua"></div></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="panel-title">Phan loai</div>
+        <div style="margin-bottom:10px">Thiet bi: <span id="mon-dev"></span></div>
+        <div>Status: <span id="mon-status"></span></div>
+      </div>
+      <div class="card" style="margin-top:14px"><div class="panel-title">Nhat ky su kien</div><div id="mon-events"></div></div>
+    </section>
+
+    <!-- BLACKLIST -->
+    <section id="view-blacklist" class="view hidden">
+      <div class="card">
+        <div class="panel-title">IP dang bi chan (fail2ban)</div>
+        <div class="toolbar">
+          <div class="search"><input type="text" id="bl-search" placeholder="Tim IP hoac quoc gia…"></div>
+        </div>
+        <div class="bulkbar" id="bl-bulk"></div>
+        <div id="bl-table"></div>
+        <div class="pager" id="bl-pager"></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="panel-title">IP nghi van (chua chan) — co the chan nhanh</div>
+        <div class="bulkbar" id="su-bulk"></div>
+        <div id="su-table"></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="panel-title">Whitelist (khong bao gio bi chan)
+          <span class="hint">owner + dai Cloudflare</span></div>
+        <div class="toolbar">
+          <div class="search"><input type="text" id="wl-input" placeholder="Them IP hoac CIDR cua ban…"></div>
+          <button class="btn primary" id="wl-add">Them</button>
+        </div>
+        <div id="wl-table"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- login -->
+<div id="login" class="login-mask hidden">
+  <form class="login-box" id="login-form">
+    <h2><span class="dot" style="width:12px;height:12px;border-radius:50%;background:var(--accent);display:inline-block"></span> Evil2Ban</h2>
+    <p>Dang nhap de quan ly</p>
+    <label>Tai khoan</label>
+    <input type="text" id="lg-user" autocomplete="username">
+    <label>Mat khau</label>
+    <input type="password" id="lg-pass" autocomplete="current-password">
+    <div class="login-err" id="lg-err"></div>
+    <div class="row">
+      <button type="button" class="side-foot" id="lg-reset" style="all:unset;cursor:pointer;color:var(--accent2);font-size:12.5px">Quen mat khau?</button>
+      <button type="submit" class="btn primary">Dang nhap</button>
+    </div>
+  </form>
+</div>
+
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

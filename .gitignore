@@ -1,0 +1,37 @@
+# --- bi mat / du lieu runtime (KHONG commit) ---
+whitelist.txt
+evil2ban.conf
+*.db
+*.db-wal
+*.db-shm
+*.log
+run.log
+
+# --- python ---
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# --- debian build artifacts ---
+debian/evil2ban/
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/*.debhelper.log
+debian/debhelper-build-stamp
+../evil2ban_*.deb
+../evil2ban_*.buildinfo
+../evil2ban_*.changes
+*.deb
+
+# --- apt repo build ---
+packaging/apt-repo/
+
+# --- misc ---
+.DS_Store
+*.swp

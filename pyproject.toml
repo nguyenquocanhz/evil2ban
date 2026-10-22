@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evil2ban"
+version = "1.0.0"
+description = "Chu dong phat hien & chan brute-force/scan, dashboard localhost, real-IP Cloudflare"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Evil2Ban" }]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "rich>=13.0",
+]
+
+[project.scripts]
+evil2ban = "evil2ban.cli.tui:main"
+evil2ban-setup = "evil2ban.cli.wizard:main"
+evil2ban-server = "evil2ban.__main__:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+evil2ban = ["static/**/*"]

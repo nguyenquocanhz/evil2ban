@@ -1,0 +1,21 @@
+[Unit]
+Description=Evil2Ban - brute-force/scan detection dashboard (localhost)
+After=network.target fail2ban.service
+Wants=fail2ban.service
+
+[Service]
+Type=simple
+# Backend chay bang venv dong goi. host/port lay tu SQLite (server.host/port).
+ExecStart=/usr/lib/evil2ban/venv/bin/evil2ban-server
+Restart=on-failure
+RestartSec=3
+# box yeu (1 core / 1GB) => gioi han tai nguyen
+MemoryMax=220M
+CPUQuota=60%
+Nice=10
+# chi doc log + goi fail2ban-client; chay quyen root de doc journald/wwwlogs
+User=root
+WorkingDirectory=/var/lib/evil2ban
+
+[Install]
+WantedBy=multi-user.target

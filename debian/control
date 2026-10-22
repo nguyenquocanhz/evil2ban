@@ -1,0 +1,21 @@
+Source: evil2ban
+Section: admin
+Priority: optional
+Maintainer: Evil2Ban contributors <noreply@example.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/OWNER/evil2ban
+Rules-Requires-Root: no
+
+Package: evil2ban
+Architecture: all
+Depends: ${misc:Depends}, python3 (>= 3.10), python3-venv, fail2ban, curl
+Description: Chu dong phat hien va chan brute-force/scan, dashboard localhost
+ Evil2Ban doc log nginx (/www/wwwlogs), journald SSH va fail2ban de phat hien
+ scan/brute-force, thong ke traffic va User-Agent, chan/go chan IP, va ve bieu
+ do theo ngay/thang (duong, nen OHLC, cot) ngay tren WebUI nhe khong CDN.
+ .
+ Ho tro real-IP Cloudflare: khong bao gio ban dai IP Cloudflare (tranh sap
+ toan bo site), uu tien CF-Connecting-IP/X-Forwarded-For khi log co ghi.
+ Dashboard bind 127.0.0.1 (vao qua SSH tunnel). Tich hop notifier
+ Telegram/Slack/Discord co san va reset mat khau qua email (Gmail App Password).

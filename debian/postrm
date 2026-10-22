@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+case "$1" in
+  remove)
+    systemctl disable evil2ban 2>/dev/null || true
+    rm -f /usr/bin/evil2ban /usr/bin/evil2ban-setup /usr/bin/evil2ban-server
+    rm -rf /usr/lib/evil2ban/venv
+    systemctl daemon-reload 2>/dev/null || true
+    ;;
+  purge)
+    systemctl disable evil2ban 2>/dev/null || true
+    rm -f /usr/bin/evil2ban /usr/bin/evil2ban-setup /usr/bin/evil2ban-server
+    rm -rf /usr/lib/evil2ban /var/lib/evil2ban /etc/evil2ban
+    systemctl daemon-reload 2>/dev/null || true
+    ;;
+esac
+#DEBHELPER#
+exit 0

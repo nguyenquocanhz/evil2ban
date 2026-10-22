@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+# Dong goi Evil2Ban. Source Python cai vao /usr/lib/evil2ban/build;
+# venv dung trong postinst (keo fastapi/uvicorn/rich tu PyPI).
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+override_dh_auto_test:
+override_dh_auto_install:
+	mkdir -p debian/evil2ban/usr/lib/evil2ban/build
+	cp -r src pyproject.toml requirements.txt README.md LICENSE \
+	      debian/evil2ban/usr/lib/evil2ban/build/
+	mkdir -p debian/evil2ban/lib/systemd/system
+	cp systemd/evil2ban.service debian/evil2ban/lib/systemd/system/
+
+# postinst da tu enable/start; tranh dh_installsystemd lam trung
+override_dh_installsystemd:

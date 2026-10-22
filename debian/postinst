@@ -1,0 +1,45 @@
+#!/bin/sh
+# postinst — dung venv, cai package, seed DB + creds, enable service.
+set -e
+
+E2B_HOME=/usr/lib/evil2ban
+BUILD="$E2B_HOME/build"
+STATE=/var/lib/evil2ban
+
+case "$1" in
+  configure)
+    mkdir -p "$STATE" /etc/evil2ban
+    chmod 700 /etc/evil2ban "$STATE" || true
+
+    # 1) venv (keo deps tu PyPI — can internet lan dau)
+    if [ ! -x "$E2B_HOME/venv/bin/python" ]; then
+      echo " >> Tao moi truong Python (venv)…"
+      python3 -m venv "$E2B_HOME/venv"
+    fi
+    "$E2B_HOME/venv/bin/pip" install --quiet --upgrade pip wheel >/dev/null 2>&1 || true
+    echo " >> Cai Evil2Ban + phu thuoc (fastapi/uvicorn/rich)…"
+    "$E2B_HOME/venv/bin/pip" install --quiet --no-cache-dir "$BUILD"
+
+    # 2) lenh he thong
+    ln -sf "$E2B_HOME/venv/bin/evil2ban"        /usr/bin/evil2ban
+    ln -sf "$E2B_HOME/venv/bin/evil2ban-setup"  /usr/bin/evil2ban-setup
+    ln -sf "$E2B_HOME/venv/bin/evil2ban-server" /usr/bin/evil2ban-server
+
+    # 3) seed DB + tai khoan (non-interactive) -> in link WebUI
+    E2B_STATE_DIR="$STATE" "$E2B_HOME/venv/bin/evil2ban-setup" --non-interactive || true
+
+    # 4) service
+    systemctl daemon-reload || true
+    systemctl enable evil2ban >/dev/null 2>&1 || true
+    systemctl restart evil2ban || true
+
+    echo ""
+    echo " >> Evil2Ban da cai xong."
+    echo " >> Cau hinh Email/Telegram/whitelist: sudo evil2ban-setup"
+    echo " >> Xem lai link WebUI + token:        sudo evil2ban-setup --print"
+    echo " >> Mo giao dien dong lenh:            sudo evil2ban"
+    ;;
+esac
+
+#DEBHELPER#
+exit 0
